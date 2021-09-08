@@ -12,7 +12,13 @@ buildscript {
         // in the individual module build.gradle files
     }
 }
-
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+        jcenter() // Warning: this repository is going to shut down soon
+    }
+}
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
