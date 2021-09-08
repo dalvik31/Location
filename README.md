@@ -9,7 +9,7 @@
 			maven { url 'https://jitpack.io' }
 		}
 	}
-  
+  ```
 > Step 2. Add the dependency
 
 ```
@@ -17,6 +17,7 @@ dependencies {
 	        implementation 'com.github.dalvik31:Location:Tag'
 	}
   
+  ```
 > Step 3. Use kotlin
 
 ```
