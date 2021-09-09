@@ -9,6 +9,7 @@ import android.location.LocationManager
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import com.dalvik.progresscustom.ProgressCustom
 import java.lang.ref.WeakReference
 
 class LocationManagement private constructor(private val activity: WeakReference<AppCompatActivity>) :
@@ -17,9 +18,15 @@ class LocationManagement private constructor(private val activity: WeakReference
         Manifest.permission.ACCESS_FINE_LOCATION,
         Manifest.permission.ACCESS_COARSE_LOCATION
     )
-    private var message: String = String()
+    private  var  progressCustom = ProgressCustom.from(activity.get()!!)
+    private var messagePermission: String = String()
+    private var messageObtainLocation: String = String()
     private var callback: (Location) -> Unit = {}
-    lateinit var locationManager: LocationManager
+    private lateinit var locationManager: LocationManager
+    private var colorProgress: Int = 0
+    private var colorBackground: Int = 0
+    private var colorText: Int = 0
+
 
     private val permissionCheck =
         activity.get()
@@ -32,14 +39,33 @@ class LocationManagement private constructor(private val activity: WeakReference
         fun from(activity: AppCompatActivity) = LocationManagement(WeakReference(activity))
     }
 
-    fun message(description: String): LocationManagement {
-        message = description
+    fun messagePermission(messagePermission: String): LocationManagement {
+        this.messagePermission = messagePermission
+        return this
+    }
+
+    fun messageObtainLocation(messageObtainLocation: String): LocationManagement {
+        this.messageObtainLocation = messageObtainLocation
         return this
     }
 
     fun getLocation(callback: (Location) -> Unit) {
         this.callback = callback
         handlePermissionRequest()
+    }
+    fun colorProgress(colorProgress: Int): LocationManagement {
+        this.colorProgress = colorProgress
+        return this
+    }
+
+    fun colorBackground(colorBackground: Int): LocationManagement {
+        this.colorBackground = colorBackground
+        return this
+    }
+
+    fun colorText(colorText: Int): LocationManagement {
+        this.colorText = colorText
+        return this
     }
 
     private fun handlePermissionRequest() {
@@ -59,9 +85,10 @@ class LocationManagement private constructor(private val activity: WeakReference
         requiredPermissions.any { activity.shouldShowRequestPermissionRationale(it) }
 
     private fun displayRationale(activity: AppCompatActivity) {
+        progressCustom = ProgressCustom.from(activity)
         AlertDialog.Builder(activity)
             .setTitle(activity.getString(R.string.dialog_permission_title))
-            .setMessage(message)
+            .setMessage(messagePermission)
             .setCancelable(false)
             .setPositiveButton(activity.getString(android.R.string.ok)) { _, _ ->
                 requestPermissions()
@@ -77,6 +104,7 @@ class LocationManagement private constructor(private val activity: WeakReference
             if (location != null) {
                 callback(location)
             }else{*/
+           showProgress()
             locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0L, 0F, this)
             //}
         }
@@ -84,7 +112,15 @@ class LocationManagement private constructor(private val activity: WeakReference
 
     override fun onLocationChanged(location: Location) {
         callback(location)
+        progressCustom.hideProgress()
         locationManager.removeUpdates(this)
     }
 
+    private fun showProgress(){
+        if (colorProgress != 0 ) progressCustom.colorProgress(colorProgress)
+        if(colorBackground != 0 ) progressCustom.colorBackground(colorBackground)
+        if(colorText != 0) progressCustom.colorText(colorText)
+        progressCustom.message(messageObtainLocation)
+        progressCustom.showProgress()
+    }
 }
