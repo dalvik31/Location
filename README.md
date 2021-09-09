@@ -25,10 +25,15 @@ class MainActivity : AppCompatActivity() {
 
     private val locationManager = LocationManagement.from(this)
     
-   buttonLocation.setOnClickListener{
+    buttonLocation.setOnClickListener{
             locationManager
-                .message("Para una mejor experiencia es necesario que permitas el acceso a tu ubicacion")
+                .messagePermission("Para una mejor experiencia es necesario que permitas el acceso a tu ubicacion")
+                .messageObtainLocation("Obteniendo ubicacion")
+                .colorProgress(R.color.purple_200)
                 .getLocation {
+                    if(it!=null){
                     Log.e("location","latitude ${it.latitude}, longitude${it.longitude}")
+                }
+
             }
         }
