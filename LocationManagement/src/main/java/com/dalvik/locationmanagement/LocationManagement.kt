@@ -26,6 +26,7 @@ class LocationManagement private constructor(private val activity: WeakReference
     private var colorProgress: Int = 0
     private var colorBackground: Int = 0
     private var colorText: Int = 0
+    private var isTracking = false
 
 
     private val permissionCheck =
@@ -49,9 +50,16 @@ class LocationManagement private constructor(private val activity: WeakReference
         return this
     }
 
-    fun getLocation(callback: (Location) -> Unit) {
+    fun getLastLocation(callback: (Location) -> Unit) {
         this.callback = callback
         handlePermissionRequest()
+    }
+
+    fun stopTrackingLocation(){
+        if( progressCustom!= null && locationManager!= null){
+            progressCustom.hideProgress()
+            locationManager.removeUpdates(this)
+        }
     }
     fun colorProgress(colorProgress: Int): LocationManagement {
         this.colorProgress = colorProgress
@@ -65,6 +73,11 @@ class LocationManagement private constructor(private val activity: WeakReference
 
     fun colorText(colorText: Int): LocationManagement {
         this.colorText = colorText
+        return this
+    }
+
+    fun isLocationTracking(isLocationTracking: Boolean): LocationManagement {
+        this.isTracking = isLocationTracking
         return this
     }
 
@@ -113,7 +126,9 @@ class LocationManagement private constructor(private val activity: WeakReference
     override fun onLocationChanged(location: Location) {
         callback(location)
         progressCustom.hideProgress()
-        locationManager.removeUpdates(this)
+        if(!isTracking){
+            locationManager.removeUpdates(this)
+        }
     }
 
     private fun showProgress(){

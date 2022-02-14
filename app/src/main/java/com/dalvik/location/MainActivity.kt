@@ -19,12 +19,17 @@ class MainActivity : AppCompatActivity() {
                 .messagePermission("Para una mejor experiencia es necesario que permitas el acceso a tu ubicacion")
                 .messageObtainLocation("Obteniendo ubicacion")
                 .colorProgress(R.color.purple_200)
-                .getLocation {
+                .isLocationTracking(false)
+                .getLastLocation {
                     if(it!=null){
                     Log.e("location","latitude ${it.latitude}, longitude${it.longitude}")
                 }
 
             }
+        }
+
+        buttonLocation2.setOnClickListener {
+            locationManager.stopTrackingLocation()
         }
 
     }
