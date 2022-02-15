@@ -2,33 +2,51 @@ package com.dalvik.locationmanagement
 
 import android.Manifest
 import android.annotation.SuppressLint
-import android.content.Context.LOCATION_SERVICE
 import android.location.Location
-import android.location.LocationListener
-import android.location.LocationManager
+import android.os.Build
+import android.os.Looper
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.dalvik.progresscustom.ProgressCustom
+import com.google.android.gms.location.*
 import java.lang.ref.WeakReference
 
-class LocationManagement private constructor(private val activity: WeakReference<AppCompatActivity>) :
-    LocationListener {
+class LocationManagement private constructor(private val activity: WeakReference<AppCompatActivity>) {
+
+    //Permisos
     private val requiredPermissions = mutableListOf(
         Manifest.permission.ACCESS_FINE_LOCATION,
         Manifest.permission.ACCESS_COARSE_LOCATION
     )
-    private  var  progressCustom = ProgressCustom.from(activity.get()!!)
+
+    //Inicializacion de Location Request
+    private var mLocationRequest: LocationRequest = LocationRequest.create().apply {
+        interval = 10000
+        fastestInterval = 1000 / 2
+        priority = LocationRequest.PRIORITY_HIGH_ACCURACY
+    }
+
+
+    //Inicializacion de objetos que ocupan Context
+    private var fusedLocationClient: FusedLocationProviderClient =
+        LocationServices.getFusedLocationProviderClient(activity.get()!!)
+    private var progressCustom = ProgressCustom.from(activity.get()!!)
+
+    //Inicializacion de variables
     private var messagePermission: String = String()
     private var messageObtainLocation: String = String()
     private var callback: (Location) -> Unit = {}
-    private lateinit var locationManager: LocationManager
     private var colorProgress: Int = 0
     private var colorBackground: Int = 0
     private var colorText: Int = 0
     private var isTracking = false
 
+    //Inicializacion de callback para mandar la ubicacion a la activity
+    private lateinit var locationCallback: LocationCallback
 
+    //Solicitud de permisos
     private val permissionCheck =
         activity.get()
             ?.registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { grantResults ->
@@ -50,17 +68,21 @@ class LocationManagement private constructor(private val activity: WeakReference
         return this
     }
 
+    @RequiresApi(Build.VERSION_CODES.M)
     fun getLastLocation(callback: (Location) -> Unit) {
         this.callback = callback
         handlePermissionRequest()
     }
 
-    fun stopTrackingLocation(){
-        if( progressCustom!= null && locationManager!= null){
-            progressCustom.hideProgress()
-            locationManager.removeUpdates(this)
-        }
+    fun stopLocationUpdates() {
+
+        if(locationCallback!=null){
+            fusedLocationClient.removeLocationUpdates(locationCallback)
+            }
+
+
     }
+
     fun colorProgress(colorProgress: Int): LocationManagement {
         this.colorProgress = colorProgress
         return this
@@ -94,6 +116,8 @@ class LocationManagement private constructor(private val activity: WeakReference
         permissionCheck?.launch(requiredPermissions.toTypedArray())
     }
 
+
+    @SuppressLint("NewApi")
     private fun shouldShowPermissionRationale(activity: AppCompatActivity) =
         requiredPermissions.any { activity.shouldShowRequestPermissionRationale(it) }
 
@@ -112,30 +136,45 @@ class LocationManagement private constructor(private val activity: WeakReference
     @SuppressLint("MissingPermission")
     private fun sendResultAndCleanUp(grantResults: Map<String, Boolean>) {
         if (grantResults.all { it.value }) {
-            locationManager = activity.get()?.getSystemService(LOCATION_SERVICE) as LocationManager
-            /*val location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
-            if (location != null) {
-                callback(location)
-            }else{*/
-           showProgress()
-            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0L, 0F, this)
-            //}
+
+            if (isTracking) {
+
+                locationCallback = object : LocationCallback() {
+                    override fun onLocationResult(p0: LocationResult) {
+                        p0 ?: return
+
+                        for (location in p0.locations) {
+                            callback(location)
+                        }
+                    }
+                }
+
+                fusedLocationClient.requestLocationUpdates(
+                    mLocationRequest,
+                    locationCallback,
+                    Looper.getMainLooper()
+                )
+
+
+            } else {
+                fusedLocationClient.lastLocation
+                    .addOnSuccessListener { location: Location? ->
+                        if (location != null) {
+                            callback(location)
+                        }
+                    }
+
+            }
         }
     }
 
-    override fun onLocationChanged(location: Location) {
-        callback(location)
-        progressCustom.hideProgress()
-        if(!isTracking){
-            locationManager.removeUpdates(this)
-        }
-    }
-
-    private fun showProgress(){
-        if (colorProgress != 0 ) progressCustom.colorProgress(colorProgress)
-        if(colorBackground != 0 ) progressCustom.colorBackground(colorBackground)
-        if(colorText != 0) progressCustom.colorText(colorText)
+    private fun showProgress() {
+        if (colorProgress != 0) progressCustom.colorProgress(colorProgress)
+        if (colorBackground != 0) progressCustom.colorBackground(colorBackground)
+        if (colorText != 0) progressCustom.colorText(colorText)
         progressCustom.message(messageObtainLocation)
         progressCustom.showProgress()
     }
+
+
 }
