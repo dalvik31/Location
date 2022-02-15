@@ -118,7 +118,7 @@ class LocationManagement private constructor(private val activity: WeakReference
                 callback(location)
             }else{*/
            showProgress()
-            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0L, 0F, this)
+            locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0L, 0F, this)
             //}
         }
     }
