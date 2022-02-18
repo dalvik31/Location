@@ -23,17 +23,58 @@ dependencies {
 ```
 class MainActivity : AppCompatActivity() {
 
-    private val locationManager = LocationManagement.from(this)
+     private lateinit var locationManager: LocationManagement
+     
+     locationManager = LocationManagement.from(this)
     
-    buttonLocation.setOnClickListener{
-            locationManager
-                .messagePermission("Para una mejor experiencia es necesario que permitas el acceso a tu ubicacion")
-                .messageObtainLocation("Obteniendo ubicacion")
-                .colorProgress(R.color.purple_200)
-                .getLocation {
-                    if(it!=null){
-                    Log.e("location","latitude ${it.latitude}, longitude${it.longitude}")
-                }
+   //Ultima ubicacion
+        buttonLocation.setOnClickListener {
+             locationManager
+            .messagePermission("Para una mejor experiencia es necesario que permitas el acceso a tu ubicacion")
+            .messageObtainLocation("Obteniendo ubicacion")
+            .colorProgress(R.color.purple_200)
+            .isLocationTracking(false)
+            .getLocation { latlng, error ->
 
+                if (error.isNullOrEmpty()) {
+                    Toast.makeText(
+                        this,
+                        "${latlng!!.latitude} , ${latlng.longitude}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } else {
+                    Toast.makeText(this, error, Toast.LENGTH_SHORT).show()
+                }
             }
         }
+	
+	
+	 //tracking de la ubicacion
+        buttonStart.setOnClickListener {
+             locationManager
+            .messagePermission("Para una mejor experiencia es necesario que permitas el acceso a tu ubicacion")
+            .messageObtainLocation("Obteniendo ubicacion")
+            .colorProgress(R.color.purple_200)
+            .isLocationTracking(true)
+            .getLocation { latlng, error ->
+                if (error.isNullOrEmpty()) {
+                    mMap.isMyLocationEnabled = true
+                    Toast.makeText(
+                        this,
+                        "${latlng!!.latitude} , ${latlng.longitude}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                } else {
+                    Toast.makeText(this, error, Toast.LENGTH_SHORT).show()
+                }
+            }
+	   
+        }
+	
+	
+	//Detener el tracking de la ubicacion
+        buttonStop.setOnClickListener {
+            locationManager.stopLocationUpdates()
+        }
+
+	
