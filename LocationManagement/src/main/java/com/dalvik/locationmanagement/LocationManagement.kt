@@ -11,6 +11,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.dalvik.progresscustom.ProgressCustom
 import com.google.android.gms.location.*
+import com.google.android.gms.maps.model.LatLng
 import java.lang.ref.WeakReference
 
 class LocationManagement private constructor(private val activity: WeakReference<AppCompatActivity>) {
@@ -23,8 +24,8 @@ class LocationManagement private constructor(private val activity: WeakReference
 
     //Inicializacion de Location Request
     private var mLocationRequest: LocationRequest = LocationRequest.create().apply {
-        interval = 10000
-        fastestInterval = 1000 / 2
+        interval = Constants.INTERVAL_LOCATIONMANAGER
+        fastestInterval = Constants.FASTES_INTERVAL
         priority = LocationRequest.PRIORITY_HIGH_ACCURACY
     }
 
@@ -37,14 +38,21 @@ class LocationManagement private constructor(private val activity: WeakReference
     //Inicializacion de variables
     private var messagePermission: String = String()
     private var messageObtainLocation: String = String()
-    private var callback: (Location) -> Unit = {}
+    private var callback: (LatLng?, String) -> Unit = { l, s ->  }
     private var colorProgress: Int = 0
     private var colorBackground: Int = 0
     private var colorText: Int = 0
     private var isTracking = false
 
-    //Inicializacion de callback para mandar la ubicacion a la activity
-    private lateinit var locationCallback: LocationCallback
+    //Inicializacion de callback para mandar la ubicacion al activity
+    private  var locationCallback: LocationCallback   = object : LocationCallback() {
+        override fun onLocationResult(p0: LocationResult) {
+            p0 ?: return
+            for (location in p0.locations) {
+                callback(LatLng(location.latitude,location.longitude),"")
+            }
+        }
+    }
 
     //Solicitud de permisos
     private val permissionCheck =
@@ -69,18 +77,15 @@ class LocationManagement private constructor(private val activity: WeakReference
     }
 
     @RequiresApi(Build.VERSION_CODES.M)
-    fun getLastLocation(callback: (Location) -> Unit) {
+    fun getLocation(callback: (LatLng?, String) -> Unit) {
         this.callback = callback
         handlePermissionRequest()
     }
 
     fun stopLocationUpdates() {
-
-        if(locationCallback!=null){
-            fusedLocationClient.removeLocationUpdates(locationCallback)
-            }
-
-
+        locationCallback.let {
+            fusedLocationClient.removeLocationUpdates(it)
+        }
     }
 
     fun colorProgress(colorProgress: Int): LocationManagement {
@@ -139,15 +144,6 @@ class LocationManagement private constructor(private val activity: WeakReference
 
             if (isTracking) {
 
-                locationCallback = object : LocationCallback() {
-                    override fun onLocationResult(p0: LocationResult) {
-                        p0 ?: return
-
-                        for (location in p0.locations) {
-                            callback(location)
-                        }
-                    }
-                }
 
                 fusedLocationClient.requestLocationUpdates(
                     mLocationRequest,
@@ -157,10 +153,14 @@ class LocationManagement private constructor(private val activity: WeakReference
 
 
             } else {
+                showProgress()
                 fusedLocationClient.lastLocation
                     .addOnSuccessListener { location: Location? ->
+                        hideProgress()
                         if (location != null) {
-                            callback(location)
+                            callback(LatLng(location.latitude,location.longitude),"")
+                        }else{
+                            callback(null,"No se ha podido obtener tu ubicación")
                         }
                     }
 
@@ -174,6 +174,12 @@ class LocationManagement private constructor(private val activity: WeakReference
         if (colorText != 0) progressCustom.colorText(colorText)
         progressCustom.message(messageObtainLocation)
         progressCustom.showProgress()
+    }
+
+    private fun hideProgress(){
+        progressCustom.let {
+            it.hideProgress()
+        }
     }
 
 
